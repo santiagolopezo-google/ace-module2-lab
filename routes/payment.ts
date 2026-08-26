@@ -5,6 +5,7 @@
 
 import { type Request, type Response, type NextFunction } from 'express'
 import { CardModel } from '../models/card'
+import * as security from '../lib/insecurity'
 
 interface displayCard {
   UserId: number
@@ -17,8 +18,15 @@ interface displayCard {
 
 export function getPaymentMethods () {
   return async (req: Request, res: Response, next: NextFunction) => {
+    const loggedInUser = security.authenticatedUsers.from(req)
+    if (!loggedInUser || !loggedInUser.data) {
+      res.status(401).json({ status: 'error', message: 'Unauthorized' })
+      return
+    }
+    const userId = loggedInUser.data.id
+
     const displayableCards: displayCard[] = []
-    const cards = await CardModel.findAll({ where: { UserId: req.body.UserId } })
+    const cards = await CardModel.findAll({ where: { UserId: userId } })
     cards.forEach(card => {
       const displayableCard: displayCard = {
         UserId: card.UserId,
@@ -38,7 +46,14 @@ export function getPaymentMethods () {
 
 export function getPaymentMethodById () {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const card = await CardModel.findOne({ where: { id: req.params.id, UserId: req.body.UserId } })
+    const loggedInUser = security.authenticatedUsers.from(req)
+    if (!loggedInUser || !loggedInUser.data) {
+      res.status(401).json({ status: 'error', message: 'Unauthorized' })
+      return
+    }
+    const userId = loggedInUser.data.id
+
+    const card = await CardModel.findOne({ where: { id: req.params.id, UserId: userId } })
     const displayableCard: displayCard = {
       UserId: 0,
       id: 0,
@@ -67,7 +82,14 @@ export function getPaymentMethodById () {
 
 export function delPaymentMethodById () {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const card = await CardModel.destroy({ where: { id: req.params.id, UserId: req.body.UserId } })
+    const loggedInUser = security.authenticatedUsers.from(req)
+    if (!loggedInUser || !loggedInUser.data) {
+      res.status(401).json({ status: 'error', message: 'Unauthorized' })
+      return
+    }
+    const userId = loggedInUser.data.id
+
+    const card = await CardModel.destroy({ where: { id: req.params.id, UserId: userId } })
     if (card) {
       res.status(200).json({ status: 'success', data: 'Card deleted successfully.' })
     } else {
